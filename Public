@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta CPF Completo | Athenas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .search-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 14px 18px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      min-height: 24px;
+    }
+
+    .status.loading { color: var(--muted); }
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--success); }
+
+    .credits {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* Resultado */
+    .result-section {
+      display: none;
+    }
+
+    .result-section.visible {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    .section h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+    }
+
+    .field span {
+      font-size: 0.95rem;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge.otimo, .badge.baixo, .badge.baixissimo { background: #14532d; color: #4ade80; }
+    .badge.bom, .badge.medio { background: #713f12; color: #fbbf24; }
+    .badge.ruim, .badge.alto, .badge.altissimo { background: #7f1d1d; color: #f87171; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+
+    .raw-toggle {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .raw-toggle button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 8px 16px;
+    }
+
+    .raw-toggle button:hover {
+      background: #1e293b;
+      color: var(--text);
+    }
+
+    pre {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      margin-top: 12px;
+      display: none;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    pre.visible { display: block; }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Consulta CPF Completo</h1>
+      <p>Dados pessoais • Telefones • Endereços • Score • Parentes • IRPF</p>
+    </header>
+
+    <div class="search-card">
+      <div class="input-group">
+        <input type="text" id="cpf" placeholder="Digite o CPF (somente números)" maxlength="14" autocomplete="off">
+        <button id="btnConsultar">Consultar</button>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="credits" id="credits"></div>
+    </div>
+
+    <div class="result-section" id="resultado">
+      <!-- Dados Pessoais -->
+      <div class="section" id="sec-pessoais">
+        <h2>👤 Dados Pessoais</h2>
+        <div class="grid" id="dadosPessoais"></div>
+      </div>
+
+      <!-- Score -->
+      <div class="section" id="sec-score">
+        <h2>📊 Score de Crédito</h2>
+        <div class="grid" id="score"></div>
+      </div>
+
+      <!-- Poder Aquisitivo -->
+      <div class="section" id="sec-renda">
+        <h2>💰 Poder Aquisitivo</h2>
+        <div class="grid" id="renda"></div>
+      </div>
+
+      <!-- Telefones -->
+      <div class="section" id="sec-telefones">
+        <h2>📱 Telefones</h2>
+        <div id="telefones"></div>
+      </div>
+
+      <!-- Emails -->
+      <div class="section" id="sec-emails">
+        <h2>✉️ E-mails</h2>
+        <div id="emails"></div>
+      </div>
+
+      <!-- Endereços -->
+      <div class="section" id="sec-enderecos">
+        <h2>📍 Endereços</h2>
+        <div id="enderecos"></div>
+      </div>
+
+      <!-- Parentes -->
+      <div class="section" id="sec-parentes">
+        <h2>👨‍👩‍👧‍👦 Parentes</h2>
+        <div id="parentes"></div>
+      </div>
+
+      <!-- PIS / TSE -->
+      <div class="section" id="sec-docs">
+        <h2>📄 Documentos (PIS / Título de Eleitor)</h2>
+        <div class="grid" id="docs"></div>
+      </div>
+
+      <!-- IRPF -->
+      <div class="section" id="sec-irpf">
+        <h2>🧾 Histórico IRPF</h2>
+        <div id="irpf"></div>
+      </div>
+
+      <div class="raw-toggle">
+        <button id="btnRaw">Ver JSON completo</button>
+        <pre id="rawJson"></pre>
+      </div>
+    </div>
+
+    <footer>
+      Powered by Athenas Buscas API • Uso responsável e em conformidade com a LGPD
+    </footer>
+  </div>
+
+  <script>
+    const cpfInput = document.getElementById('cpf');
+    const btn = document.getElementById('btnConsultar');
+    const statusEl = document.getElementById('status');
+    const creditsEl = document.getElementById('credits');
+    const resultado = document.getElementById('resultado');
+    const rawJson = document.getElementById('rawJson');
+    const btnRaw = document.getElementById('btnRaw');
+
+    // Máscara CPF
+    cpfInput.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) {
+        v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+      } else if (v.length > 6) {
+        v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+      } else if (v.length > 3) {
+        v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+      }
+      e.target.value = v;
+    });
+
+    cpfInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btn.click();
+    });
+
+    function field(label, value) {
+      if (value === null || value === undefined || value === '') value = '—';
+      return `<div class="field"><label>${label}</label><span>${value}</span></div>`;
+    }
+
+    function badge(text) {
+      if (!text) return '—';
+      const t = String(text).toLowerCase();
+      let cls = '';
+      if (t.includes('otimo') || t.includes('baixo') || t.includes('baixissimo')) cls = 'otimo';
+      else if (t.includes('bom') || t.includes('medio')) cls = 'bom';
+      else if (t.includes('ruim') || t.includes('alto') || t.includes('altissimo')) cls = 'ruim';
+      return `<span class="badge ${cls}">${text}</span>`;
+    }
+
+    function renderDadosPessoais(d) {
+      const el = document.getElementById('dadosPessoais');
+      if (!d) { el.innerHTML = '<p class="empty">Sem dados pessoais</p>'; return; }
+      el.innerHTML = [
+        field('Nome', d.nome),
+        field('CPF', d.cpf || '—'),
+        field('Sexo', d.sexo === 'M' ? 'Masculino' : d.sexo === 'F' ? 'Feminino' : d.sexo),
+        field('Data de Nascimento', d.dataNascimento),
+        field('Nome da Mãe', d.nomeMae),
+        field('Nome do Pai', d.nomePai),
+        field('Estado Civil', d.estadoCivil),
+        field('RG', d.rg),
+        field('Nacionalidade', d.nacionalidade),
+        field('Situação Cadastral', d.situacaoCadastro),
+        field('Data Situação', d.dataSituacaoCadastro),
+        field('Data Óbito', d.dataObito || '—')
+      ].join('');
+    }
+
+    function renderScore(arr) {
+      const el = document.getElementById('score');
+      if (!arr || !arr.length) { el.innerHTML = '<p class="empty">Sem score disponível</p>'; return; }
+      const s = arr[0];
+      el.innerHTML = [
+        field('CSB8 (0-1000)', s.csb8),
+        field('Faixa CSB8', badge(s.csb8Faixa)),
+        field('CSBA (Adimplência)', s.csba),
+        field('Faixa CSBA', badge(s.csbaFaixa))
+      ].join('');
+    }
+
+    function renderRenda(arr) {
+      const el = document.getElementById('renda');
+      if (!arr || !arr.length) { el.innerHTML = '<p class="empty">Sem informação de renda</p>'; return; }
+      const r = arr[0];
+      el.innerHTML = [
+        field('Poder Aquisitivo', badge(r.PODER_AQUISITIVO || r.poderAquisitivo)),
+        field('Faixa de Renda', r.FX_PODER_AQUISITIVO || r.faixaRenda),
+        field('Renda Estimada', r.RENDA || r.rendaEstimada ? `R$ ${r.RENDA || r.rendaEstimada}` : '—')
+      ].join('');
+    }
+
+    function renderTelefones(arr) {
+      const el = document.getElementById('telefones');
+      if (!arr || !arr.length) { el.innerHTML = '<p class="empty">Nenhum telefone encontrado</p>'; return; }
+      let html = `<table><thead><tr><th>Número</th><th>Tipo</th><th>Inclusão</th><th>Atualização</th></tr></thead><tbody>`;
+      arr.forEach(t => {
+        html += `<tr>
+          <td><strong>${t.numeroCompleto || (t.DDD + t.TELEFONE)}</strong></td>
+          <td>${t.tipo || t.TIPO_TELEFONE || '—'}</td>
+          <td>${t.dataInclusao || '—'}</td>
+          <td>${t.dataInformacao || '—'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    }
+
+    function renderEmails(arr) {
+      const el = document.getElementById('emails');
+      if (!arr || !arr.length) { el.innerHTML = '<p class="empty">Nenhum e-mail encontrado</p>'; return; }
+      let html = `<table><thead><tr><th>E-mail</th><th>Pessoal</th><th>Score</th><th>Inclusão</th></tr></thead><tbody>`;
+      arr.forEach(e => {
+        html += `<tr>
+          <td><strong>${e.EMAIL || e.email}</strong></td>
+          <td>${e.EMAIL_PESSOAL === 'S' ? 'Sim' : 'Não'}</td>
+          <td>${badge(e.EMAIL_SCORE)}</td>
+          <td>${e.DT_INCLUSAO || e.dataInclusao || '—'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    }
+
+    function renderEnderecos(arr) {
+      const el = document.getElementById('enderecos');
+      if (!arr || !arr.length) { el.innerHTML = '<p class="empty">Nenhum endereço encontrado</p>'; return; }
+      let html = '';
+      arr.forEach((e, i) => {
+        const logradouro = [e.LOGR_TIPO || e.logradouroTipo, e.LOGR_NOME || e.logradouroCompleto, e.NUMERO].filter(Boolean).join(' ');
+        html += `<div class="field" style="margin-bottom:12px">
+          <label>Endereço ${i + 1} • ${e.tipoEndereco || e.TIPO_ENDERECO_ID || ''}</label>
+          <span>
+            ${logradouro}${e.COMPLEMENTO ? ', ' + e.COMPLEMENTO : ''}<br>
+            ${e.BAIRRO || ''} - ${e.CIDADE || ''}/${e.UF || ''} • CEP ${e.CEP || '—'}<br>
+            <small style="color:var(--muted)">Atualizado: ${e.dataAtualizacao || e.dataInclusao || '—'}</small>
+          </span>
+        </div>`;
+      });
+      el.innerHTML = html;
+    }
+
+    function renderParentes(arr) {
+      const el = document.getElementById('parentes');
+      if (!arr || !arr.length) { el.innerHTML = '<p class="empty">Nenhum vínculo familiar encontrado</p>'; return; }
+      let html = `<table><thead><tr><th>Nome</th><th>CPF</th><th>Vínculo</th></tr></thead><tbody>`;
+      arr.forEach(p => {
+        html += `<tr>
+          <td>${p.NOME_VINCULO || p.nomeVinculo || '—'}</td>
+          <td>${p.CPF_VINCULO || p.cpfVinculo || '—'}</td>
+          <td><strong>${p.VINCULO || p.vinculo || '—'}</strong></td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    }
+
+    function renderDocs(data) {
+      const el = document.getElementById('docs');
+      let html = '';
+      if (data.pis && data.pis.length) {
+        html += field('PIS/PASEP', data.pis.join(', '));
+      }
+      if (data.tse && data.tse.length) {
+        const t = data.tse[0];
+        html += field('Título de Eleitor', t.TITULO_ELEITOR || t.tituloEleitor);
+        html += field('Zona / Seção', `${t.ZONA || '—'} / ${t.SECAO || '—'}`);
+      }
+      if (!html) html = '<p class="empty">Nenhum documento encontrado</p>';
+      el.innerHTML = html;
+    }
+
+    function renderIrpf(irpf) {
+      const el = document.getElementById('irpf');
+      if (!irpf) {
+        el.innerHTML = '<p class="empty">Nenhum histórico de IRPF encontrado</p>';
+        return;
+      }
+
+      let html = '';
+      if (irpf.resumo) {
+        const r = irpf.resumo;
+        html += `<div class="grid" style="margin-bottom:16px">
+          ${field('Total de registros', r.totalRegistros)}
+          ${field('Anos com declaração', r.anosComDeclaracao)}
+          ${field('Primeiro / Último ano', `${r.primeiroAno || '—'} → ${r.ultimoAno || '—'}`)}
+          ${field('Anos com restituição', r.anosComRestituicao)}
+        </div>`;
+      }
+
+      if (irpf.declaracoes && irpf.declaracoes.length) {
+        html += `<table><thead><tr><th>Ano</th><th>Situação</th><th>Restituição</th><th>Banco / Agência</th></tr></thead><tbody>`;
+        irpf.declaracoes.forEach(d => {
+          const sit = d.situacao?.descricao || d.situacao?.original || '—';
+          const rest = d.restituicao?.houve ? `Lote ${d.restituicao.lote || '—'} (${d.restituicao.dataLoteBr || d.restituicao.dataLote || '—'})` : 'Não';
+          const banco = d.restituicao?.banco ? `${d.restituicao.banco} / ${d.restituicao.agencia || '—'}` : '—';
+          html += `<tr>
+            <td><strong>${d.ano}</strong></td>
+            <td>${sit}</td>
+            <td>${rest}</td>
+            <td>${banco}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+      }
+
+      el.innerHTML = html || '<p class="empty">Sem detalhes de IRPF</p>';
+    }
+
+    btn.addEventListener('click', async () => {
+      const cpf = cpfInput.value.replace(/\D/g, '');
+      if (cpf.length !== 11) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Informe um CPF válido com 11 dígitos.';
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.className = 'status loading';
+      statusEl.textContent = 'Consultando... isso pode levar alguns segundos.';
+      creditsEl.textContent = '';
+      resultado.classList.remove('visible');
+      rawJson.classList.remove('visible');
+      btnRaw.textContent = 'Ver JSON completo';
+
+      try {
+        const res = await fetch('/api/consulta-cpf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cpf })
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.success) {
+          statusEl.className = 'status error';
+          statusEl.textContent = json.error || `Erro ${res.status}`;
+          if (json.creditsRemaining !== null && json.creditsRemaining !== undefined) {
+            creditsEl.textContent = `Créditos restantes: ${json.creditsRemaining}`;
+          }
+          return;
+        }
+
+        const data = json.data;
+        statusEl.className = 'status success';
+        statusEl.textContent = 'Consulta realizada com sucesso!';
+        if (json.creditsRemaining !== null && json.creditsRemaining !== undefined) {
+          creditsEl.textContent = `Créditos restantes: ${json.creditsRemaining}`;
+        }
+
+        // Renderiza seções
+        renderDadosPessoais(data.dadosPessoais);
+        renderScore(data.score);
+        renderRenda(data.poderAquisitivo);
+        renderTelefones(data.telefones);
+        renderEmails(data.emails);
+        renderEnderecos(data.enderecos);
+        renderParentes(data.parentes);
+        renderDocs(data);
+        renderIrpf(data.irpf);
+
+        rawJson.textContent = JSON.stringify(data, null, 2);
+        resultado.classList.add('visible');
+
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Erro de conexão com o servidor. Verifique se o backend está rodando.';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    btnRaw.addEventListener('click', () => {
+      rawJson.classList.toggle('visible');
+      btnRaw.textContent = rawJson.classList.contains('visible') ? 'Ocultar JSON' : 'Ver JSON completo';
+    });
+  </script>
+</body>
+</html>
